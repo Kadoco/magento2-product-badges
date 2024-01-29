@@ -1,0 +1,110 @@
+<?php
+/**
+ * Copyright © Magento, Inc. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+?>
+<?php
+/** @var $block \Magento\Catalog\Block\Product\Image */
+/** @var $escaper \Magento\Framework\Escaper */
+/** @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer */
+/** @var \Kadoco\Badge\ViewModel\GetGalleryBadgeInformation $getGalleryBadgeInformation */
+$getGalleryBadgeInformation = \Magento\Framework\App\ObjectManager::getInstance()->create(\Kadoco\Badge\ViewModel\GetGalleryBadgeInformation::class);
+$isSoldOut = !$getGalleryBadgeInformation->isInStock((int)$block->getProductId());
+$width = (int)$block->getWidth();
+$paddingBottom = $block->getRatio() * 120;
+
+?>
+<span class="product-image-container product-image-container-<?= /* @noEscape */ $block->getProductId() ?>">
+    <span class="product-image-wrapper">
+        <img class="<?= $escaper->escapeHtmlAttr($block->getClass()) ?> <?=$isSoldOut ? "sold-out" : ""?>"
+            <?php foreach ($block->getCustomAttributes() as $name => $value): ?>
+                <?= $escaper->escapeHtmlAttr($name) ?>="<?= $escaper->escapeHtml($value) ?>"
+            <?php endforeach; ?>
+            src="<?= $escaper->escapeUrl($block->getImageUrl()) ?>"
+            loading="lazy"
+            width="<?= $escaper->escapeHtmlAttr($block->getWidth()) ?>"
+            height="<?= $escaper->escapeHtmlAttr($block->getHeight()) ?>"
+            alt="<?= $escaper->escapeHtmlAttr($block->getLabel()) ?>"/>
+        <?php
+
+        ?>
+        <div class="super-badges">
+            <?php if ($discountPercentage = $getGalleryBadgeInformation->getDiscountPercentage($block->getProductId())): ?>
+                <div class="badge-special-price-label">
+                    <span>
+                        -<?=$discountPercentage?>%
+                    </span>
+                </div>
+            <?php endif; ?>
+            <?php $isNew = false;?>
+            <?php if ($getGalleryBadgeInformation->isNews($block->getProductId())): ?>
+                <div class="badge-new-label-wrapper">
+                    <span class="badge-new-label">
+                        <?=__('New')?>
+                    </span>
+                </div>
+                <?php $isNew=true;?>
+            <?php endif; ?>
+        </div>
+        <?php
+
+        $isFreeDelivery = $getGalleryBadgeInformation->isFreeDelivery((int)$block->getProductId());
+        $isTierPriced= $getGalleryBadgeInformation->isTierPriced((int)$block->getProductId());
+        ?>
+    </span>
+
+</span>
+<div class="badges" style="">
+    <?php if ($isTierPriced): ?>
+        <div class="badge-tier-label-wrapper">
+            <span class="badge-tier-label">
+                <?=__('Tier prices')?>
+            </span>
+        </div>
+    <?php elseif ($isFreeDelivery): ?>
+        <div class="badge-free-delivery-label-wrapper">
+            <span class="badge-free-delivery-label">
+                <?=__('Free delivery')?>
+            </span>
+        </div>
+    <?php elseif ($isNew): ?>
+        <div class="badge-new-label-wrapper">
+            <span class="badge-new-label">
+                <?=__('New!')?>
+            </span>
+        </div>
+    <?php elseif ($isSoldOut): ?>
+        <div class="badge-sold-out-label-wrapper">
+                <span class="badge-sold-out-label">
+                    <?=__('Sold out')?>
+                </span>
+        </div>
+    <?php endif;?>
+</div>
+<?php
+$styles = <<<STYLE
+.product-image-container-{$block->getProductId()} {
+    width: {$width}px;
+}
+.product-image-container-{$block->getProductId()} span.product-image-wrapper {
+    padding-bottom: {$paddingBottom}%;
+}
+STYLE;
+//In case a script was using "style" attributes of these elements
+$script = <<<SCRIPT
+prodImageContainers = document.querySelectorAll(".product-image-container-{$block->getProductId()}");
+for (var i = 0; i < prodImageContainers.length; i++) {
+    prodImageContainers[i].style.width = "{$width}px";
+}
+prodImageContainersWrappers = document.querySelectorAll(
+    ".product-image-container-{$block->getProductId()}  span.product-image-wrapper"
+);
+for (var i = 0; i < prodImageContainersWrappers.length; i++) {
+    prodImageContainersWrappers[i].style.paddingBottom = "{$paddingBottom}%";
+}
+SCRIPT;
+
+?>
+<?= /* @noEscape */ $secureRenderer->renderTag('style', [], $styles, false) ?>
+<?= /* @noEscape */ $secureRenderer->renderTag('script', ['type' => 'text/javascript'], $script, false) ?>
